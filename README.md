@@ -6,13 +6,13 @@ A [Homebrew](https://brew.sh) tap for the macOS builds of
 ## Install
 
 ```bash
-brew install dsh-tauri-desk/deepseek-harness-desktop
+brew install dsh-tauri-desk/desktop/deepseek-harness-desktop
 ```
 
 Or add the tap first, then install:
 
 ```bash
-brew tap dsh-tauri-desk/homebrew-deepseek-harness-desktop
+brew tap dsh-tauri-desk/desktop
 brew install --cask deepseek-harness-desktop
 ```
 

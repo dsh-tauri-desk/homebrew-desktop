@@ -71,7 +71,7 @@ jobs:
           VERSION: ${{ steps.rel.outputs.version }}
           SHA_ARM: ${{ steps.dl.outputs.sha_arm }}
           SHA_INTEL: ${{ steps.dl.outputs.sha_intel }}
-          TAP_REPO: dsh-tauri-desk/homebrew-deepseek-harness-desktop
+          TAP_REPO: dsh-tauri-desk/homebrew-desktop
           CASK_PATH: Casks/deepseek-harness-desktop.rb
         run: |
           cat > /tmp/deepseek-harness-desktop.rb <<CASKEOT
