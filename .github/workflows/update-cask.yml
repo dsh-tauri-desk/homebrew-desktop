@@ -1,0 +1,116 @@
+name: Update Cask
+
+on:
+  schedule:
+    # 每天 01:23 UTC 检查上游是否有新的稳定版本
+    - cron: "23 1 * * *"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Force rebuild even if the version is unchanged"
+        required: false
+        type: boolean
+        default: false
+
+# 用本仓库自己的 GITHUB_TOKEN 把更新写回 Casks/，无需外部凭据
+permissions:
+  contents: write
+
+concurrency:
+  group: update-cask
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap
+        uses: actions/checkout@v4
+
+      - name: Resolve latest upstream release
+        id: rel
+        shell: bash
+        run: |
+          tag=$(gh api repos/dsh-tauri-desk/deepseek-harness-desktop/releases/latest --jq '.tag_name')
+          echo "latest_tag=$tag"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "version=${tag#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Compare and download DMGs
+        id: dl
+        shell: bash
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+          FORCE: ${{ github.event.inputs.force }}
+        run: |
+          cask=Casks/deepseek-harness-desktop.rb
+          current=$(sed -nE 's/^  version "([^"]+)".*/\1/p' "$cask")
+          echo "current=$current new=$VERSION force=${FORCE:-false}"
+          if [ "$current" = "$VERSION" ] && [ "${FORCE:-false}" != "true" ]; then
+            echo "Already up to date (v$current). Nothing to do."
+            echo "updated=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          base="https://github.com/dsh-tauri-desk/deepseek-harness-desktop/releases/download/v${VERSION}"
+          curl -fsSL -o arm.dmg "$base/Deepseek.Harness.Desktop_${VERSION}_aarch64.dmg"
+          curl -fsSL -o x64.dmg "$base/Deepseek.Harness.Desktop_${VERSION}_x64.dmg"
+
+          sha_arm=$(sha256sum arm.dmg | awk '{print $1}')
+          sha_intel=$(sha256sum x64.dmg | awk '{print $1}')
+          echo "sha_arm=$sha_arm"
+          echo "sha_intel=$sha_intel"
+          echo "sha_arm=$sha_arm" >> "$GITHUB_OUTPUT"
+          echo "sha_intel=$sha_intel" >> "$GITHUB_OUTPUT"
+          echo "updated=true" >> "$GITHUB_OUTPUT"
+
+      - name: Update cask in tap
+        if: steps.dl.outputs.updated == 'true'
+        shell: bash
+        env:
+          VERSION: ${{ steps.rel.outputs.version }}
+          SHA_ARM: ${{ steps.dl.outputs.sha_arm }}
+          SHA_INTEL: ${{ steps.dl.outputs.sha_intel }}
+          TAP_REPO: dsh-tauri-desk/homebrew-deepseek-harness-desktop
+          CASK_PATH: Casks/deepseek-harness-desktop.rb
+        run: |
+          cat > /tmp/deepseek-harness-desktop.rb <<CASKEOT
+          cask "deepseek-harness-desktop" do
+            arch arm: "aarch64", intel: "x64"
+
+            version "${VERSION}"
+            sha256 arm:   "${SHA_ARM}",
+                   intel: "${SHA_INTEL}"
+
+            url "https://github.com/dsh-tauri-desk/deepseek-harness-desktop/releases/download/v#{version}/Deepseek.Harness.Desktop_#{version}_#{arch}.dmg"
+            name "Deepseek Harness Desktop"
+            desc "Desktop application for DeepSeek Harness"
+            homepage "https://github.com/dsh-tauri-desk/deepseek-harness-desktop"
+
+            depends_on macos: ">= :catalina"
+
+            app "Deepseek Harness Desktop.app"
+
+            zap trash: [
+              "~/Library/Application Support/io.github.hairyf.deepseek-harness-desktop",
+              "~/Library/Caches/io.github.hairyf.deepseek-harness-desktop",
+              "~/Library/Preferences/io.github.hairyf.deepseek-harness-desktop.plist",
+              "~/.dsh",
+            ]
+          end
+          CASKEOT
+
+          content_b64=$(base64 -w0 /tmp/deepseek-harness-desktop.rb)
+          current_sha=$(gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" --jq '.sha')
+
+          jq -n \
+            --arg msg "Update cask to v${VERSION}" \
+            --arg content "$content_b64" \
+            --arg sha "$current_sha" \
+            '{message:$msg, content:$content, sha:$sha}' \
+            | gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" \
+                --method PUT \
+                --input - \
+                --jq '.content.name'
+
+          echo "Pushed cask v${VERSION} to ${TAP_REPO}"
