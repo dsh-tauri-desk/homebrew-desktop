@@ -5,16 +5,24 @@ A [Homebrew](https://brew.sh) tap for the macOS builds of
 
 ## Install
 
+Install in one command (this taps `dsh-tauri-desk/desktop` and installs the `deepseek-harness` cask for you):
+
 ```bash
-brew install dsh-tauri-desk/desktop/deepseek-harness-desktop
+brew install dsh-tauri-desk/desktop/deepseek-harness
 ```
 
 Or add the tap first, then install:
 
 ```bash
 brew tap dsh-tauri-desk/desktop
-brew install --cask deepseek-harness-desktop
+brew install --cask deepseek-harness
 ```
+
+> **Note on the tap name:** this repository is named `dsh-tauri-desk/homebrew-desktop`,
+> which Homebrew shortens to the tap `dsh-tauri-desk/desktop`. The one-liner above uses
+> that shortcut, so you don't have to type the `homebrew-` prefix.
+> `brew install dsh-tauri-desk/homebrew-desktop` (without a formula/cask name) is **not** a
+> valid install command in Homebrew — it needs the trailing cask name.
 
 ## Requirements
 
@@ -24,8 +32,8 @@ brew install --cask deepseek-harness-desktop
 
 ## Updating
 
-The `Casks/deepseek-harness-desktop.rb` cask is kept in sync automatically by the
+The `Casks/deepseek-harness.rb` cask is kept in sync automatically by the
 [`update-cask`](.github/workflows/update-cask.yml) workflow, which watches the
 upstream releases for new stable versions, recomputes the SHA256 for both
-architectures, and commits the updated cask. You can also trigger a manual run
-from the **Actions** tab.
+architectures, and commits the updated cask. It runs on a daily schedule; you can
+also trigger a run manually from the **Actions** tab.

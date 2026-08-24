@@ -43,7 +43,7 @@ jobs:
           VERSION: ${{ steps.rel.outputs.version }}
           FORCE: ${{ github.event.inputs.force }}
         run: |
-          cask=Casks/deepseek-harness-desktop.rb
+          cask=Casks/deepseek-harness.rb
           current=$(sed -nE 's/^  version "([^"]+)".*/\1/p' "$cask")
           echo "current=$current new=$VERSION force=${FORCE:-false}"
           if [ "$current" = "$VERSION" ] && [ "${FORCE:-false}" != "true" ]; then
@@ -72,10 +72,10 @@ jobs:
           SHA_ARM: ${{ steps.dl.outputs.sha_arm }}
           SHA_INTEL: ${{ steps.dl.outputs.sha_intel }}
           TAP_REPO: dsh-tauri-desk/homebrew-desktop
-          CASK_PATH: Casks/deepseek-harness-desktop.rb
+          CASK_PATH: Casks/deepseek-harness.rb
         run: |
-          cat > /tmp/deepseek-harness-desktop.rb <<CASKEOT
-          cask "deepseek-harness-desktop" do
+          cat > /tmp/deepseek-harness.rb <<CASKEOT
+          cask "deepseek-harness" do
             arch arm: "aarch64", intel: "x64"
 
             version "${VERSION}"
@@ -100,7 +100,7 @@ jobs:
           end
           CASKEOT
 
-          content_b64=$(base64 -w0 /tmp/deepseek-harness-desktop.rb)
+          content_b64=$(base64 -w0 /tmp/deepseek-harness.rb)
           current_sha=$(gh api "repos/${TAP_REPO}/contents/${CASK_PATH}" --jq '.sha')
 
           jq -n \
