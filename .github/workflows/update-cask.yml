@@ -90,8 +90,6 @@ jobs:
             desc "Desktop application for DeepSeek Harness"
             homepage "https://github.com/dsh-tauri-desk/deepseek-harness-desktop"
 
-            depends_on macos: ">= :catalina"
-
             app "Deepseek Harness Desktop.app"
 
             zap trash: [
